@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zombie Turn Oracle (LNOE)</title>
+<style>
+  :root{
+    --bg:#0b0d10;
+    --panel:#12151b;
+    --panel2:#0f1217;
+    --text:#e9eef7;
+    --muted:#a4adbb;
+    --line:#252b36;
+    --accent:#6ee7b7;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:linear-gradient(180deg,#07090c,#0b0d10);
+    color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:14px}
+  h1{font-size:18px;margin:0 0 10px 0}
+  .muted{color:var(--muted)}
+  .grid{display:grid;gap:10px}
+  @media(min-width:860px){ .grid{grid-template-columns: 1fr 1fr} }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+  }
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .row > *{flex:0 0 auto}
+  .btn{
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:var(--panel2);
+    color:var(--text);
+    cursor:pointer;
+  }
+  .btn:hover{border-color:#344055}
+  .btn.primary{border-color:#2b6b57; box-shadow:0 0 0 1px rgba(110,231,183,.08) inset}
+  select, input[type="text"], input[type="number"], textarea{
+    background:var(--panel2);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 10px;
+    outline:none;
+  }
+  input[type="number"]{width:92px}
+  textarea{width:100%; min-height:88px; resize:vertical}
+  .pill{
+    padding:6px 10px;border-radius:999px;border:1px solid var(--line);
+    background:var(--panel2); color:var(--muted); font-size:12px
+  }
+  .hr{height:1px;background:var(--line);margin:10px 0}
+  .bigout{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    background: #0b0f16;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px;
+    white-space:pre-wrap;
+    line-height:1.35;
+  }
+  .tag{font-size:12px;color:var(--muted)}
+  .chk{display:flex;align-items:center;gap:8px}
+  .chk input{transform:scale(1.1)}
+  .k{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Zombie Turn Oracle <span class="pill">all randoms, one refresh</span></h1>
+  <div class="muted" style="margin-bottom:10px">
+    Removes zombie-side “choices” (cards + targeting + tie-breaks). Movement stays in your Director app.
+  </div>
+
+  <div class="row" style="margin-bottom:10px">
+    <button class="btn primary" id="btnRefresh">REFRESH ALL</button>
+    <button class="btn" id="btnCopySummary">Copy Summary</button>
+    <button class="btn" id="btnReset">Reset Setup</button>
+    <span class="tag">(Copy grabs the SUMMARY block only.)</span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div style="font-weight:700;margin-bottom:8px">Setup (saved)</div>
+
+      <div class="row">
+        <div>
+          <div class="tag">Hero count</div>
+          <input type="number" id="inHeroCount" min="1" max="8" value="4" />
+        </div>
+
+        <div style="flex:1 1 260px; min-width:260px">
+          <div class="tag">Hero names (comma separated)</div>
+          <input type="text" id="inHeroNames" placeholder="Maria, Ben, Hawkins, Abigail" />
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <div class="chk">
+          <input type="checkbox" id="chkAutoHand" />
+          <span>Auto Z-hand (2 for 1–2 heroes, else 4)</span>
+        </div>
+
+        <div>
+          <div class="tag">Z-hand size</div>
+          <input type="number" id="inHandSize" min="2" max="6" value="4" />
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <div class="chk">
+          <input type="checkbox" id="chkPits" />
+          <span>Use Pit tie-breaks</span>
+        </div>
+
+        <div>
+          <div class="tag">Pit count</div>
+          <input type="number" id="inPitCount" min="1" max="12" value="5" />
+        </div>
+
+        <div class="tag" style="flex:1 1 260px; min-width:260px">
+          Pit indexing: start at “north-centre” pit, then clockwise.
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <div class="chk">
+          <input type="checkbox" id="chkFire" />
+          <span>Fire module (only if relevant)</span>
+        </div>
+
+        <div class="chk">
+          <input type="checkbox" id="chkSpak" />
+          <span>SPÄK-ATAK (optional)</span>
+        </div>
+
+        <div class="chk">
+          <input type="checkbox" id="chkObsession" />
+          <span>Obsession directive (WANDER → step toward “They Want”)</span>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <div class="tag" style="flex:1 1 100%">
+          <span class="k">Discard:</span> heroes may pick fast; otherwise Oracle discards random card #.
+        </div>
+        <div class="tag" style="flex:1 1 100%">
+          <span class="k">Fight cards:</span> Oracle gives HOLD YES/NO. You decide what counts as a Fight card.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="font-weight:700;margin-bottom:8px">Master Output</div>
+      <div class="bigout" id="outMaster">—</div>
+
+      <div class="hr"></div>
+
+      <div class="tag" style="margin-bottom:6px">Summary (what gets copied)</div>
+      <div class="bigout" id="outSummary">—</div>
+
+      <div class="hr"></div>
+
+      <div class="tag" style="margin-bottom:6px">Roll Log (debug)</div>
+      <div class="bigout" id="outLog">—</div>
+    </div>
+
+    <div class="panel" style="grid-column:1 / -1;">
+      <div style="font-weight:700;margin-bottom:8px">Notes (optional)</div>
+      <textarea id="inNotes" placeholder="Optional: scenario reminders / house rules / anything you want printed at top."></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STORAGE
+   ============================================================ */
+const STORAGE_KEY = "z_oracle_v1";
+
+const DEFAULT_STATE = {
+  heroCount: 4,
+  heroNames: "Maria, Ben, Hawkins, Abigail",
+  autoHand: true,
+  handSize: 4,
+  usePits: true,
+  pitCount: 5,
+  useFire: false,
+  useSpak: true,
+  useObsession: true,
+  notes: ""
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return structuredClone(DEFAULT_STATE);
+    const parsed = JSON.parse(raw);
+    return { ...structuredClone(DEFAULT_STATE), ...parsed };
+  }catch{
+    return structuredClone(DEFAULT_STATE);
+  }
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = loadState();
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+function randInt(n){ return Math.floor(Math.random() * n); } // 0..n-1
+function coin(){ return (Math.random() < 0.5) ? 1 : 0; } // 1=yes, 0=no
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1; i>0; i--){
+    const j = randInt(i+1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function parseHeroes(){
+  const raw = (state.heroNames || "").split(",").map(s=>s.trim()).filter(Boolean);
+  const hc = clamp(parseInt(state.heroCount||raw.length||1,10) || 1, 1, 8);
+  const heroes = raw.slice(0, hc);
+  while(heroes.length < hc) heroes.push(`Hero${heroes.length+1}`);
+  return heroes;
+}
+
+function autoHandSize(heroCount){
+  return (heroCount <= 2) ? 2 : 4;
+}
+
+function orderStr(list){
+  return list.join(" → ");
+}
+
+function facingRoll(){
+  const faces = ["NORTH","EAST","SOUTH","WEST"];
+  return faces[randInt(faces.length)];
+}
+
+/* ============================================================
+   UI HOOKUP
+   ============================================================ */
+const el = {
+  inHeroCount: document.getElementById("inHeroCount"),
+  inHeroNames: document.getElementById("inHeroNames"),
+  chkAutoHand: document.getElementById("chkAutoHand"),
+  inHandSize: document.getElementById("inHandSize"),
+  chkPits: document.getElementById("chkPits"),
+  inPitCount: document.getElementById("inPitCount"),
+  chkFire: document.getElementById("chkFire"),
+  chkSpak: document.getElementById("chkSpak"),
+  chkObsession: document.getElementById("chkObsession"),
+  inNotes: document.getElementById("inNotes"),
+  outMaster: document.getElementById("outMaster"),
+  outSummary: document.getElementById("outSummary"),
+  outLog: document.getElementById("outLog"),
+  btnRefresh: document.getElementById("btnRefresh"),
+  btnCopySummary: document.getElementById("btnCopySummary"),
+  btnReset: document.getElementById("btnReset")
+};
+
+function syncUI(){
+  el.inHeroCount.value = state.heroCount;
+  el.inHeroNames.value = state.heroNames;
+  el.chkAutoHand.checked = !!state.autoHand;
+  el.inHandSize.value = state.handSize;
+  el.chkPits.checked = !!state.usePits;
+  el.inPitCount.value = state.pitCount;
+  el.chkFire.checked = !!state.useFire;
+  el.chkSpak.checked = !!state.useSpak;
+  el.chkObsession.checked = !!state.useObsession;
+  el.inNotes.value = state.notes || "";
+}
+
+function pullUI(){
+  state.heroCount = clamp(parseInt(el.inHeroCount.value,10)||1, 1, 8);
+  state.heroNames = el.inHeroNames.value || "";
+  state.autoHand = !!el.chkAutoHand.checked;
+
+  const heroes = parseHeroes();
+  if(state.autoHand){
+    state.handSize = autoHandSize(heroes.length);
+    el.inHandSize.value = state.handSize;
+  }else{
+    state.handSize = clamp(parseInt(el.inHandSize.value,10)||4, 2, 6);
+  }
+
+  state.usePits = !!el.chkPits.checked;
+  state.pitCount = clamp(parseInt(el.inPitCount.value,10)||5, 1, 12);
+
+  state.useFire = !!el.chkFire.checked;
+  state.useSpak = !!el.chkSpak.checked;
+  state.useObsession = !!el.chkObsession.checked;
+
+  state.notes = el.inNotes.value || "";
+  saveState();
+}
+
+/* ============================================================
+   OUTPUT GENERATION (REFRESH ALL)
+   ============================================================ */
+function refreshAll(){
+  pullUI();
+
+  const heroes = parseHeroes();
+  const heroCount = heroes.length;
+  const handSize = clamp(parseInt(state.handSize,10)||4, 2, 6);
+
+  const log = [];
+
+  // A1 Discard (oracle random)
+  const discardRoll = 1 + randInt(handSize);
+  log.push(`discardRoll=${discardRoll}/${handSize}`);
+
+  // A2 Play order
+  const cardNums = Array.from({length: handSize}, (_,i)=>i+1);
+  const playOrder = shuffle(cardNums);
+  log.push(`playOrder=${playOrder.join("")}`);
+
+  const holdFight = coin(); // 1=yes
+  log.push(`holdFightCoin=${holdFight}`);
+
+  // B1 Obsession hero (optional)
+  let obsessionHero = null;
+  let obsessionRoll = null;
+  if(state.useObsession){
+    obsessionRoll = 1 + randInt(heroCount);
+    obsessionHero = heroes[obsessionRoll-1];
+    log.push(`obsession=${obsessionRoll}/${heroCount}`);
+  }
+
+  // C Targeting orders
+  const orderA = shuffle(heroes);
+  const orderB = shuffle(heroes);
+  const orderC = shuffle(heroes);
+  log.push(`orderA=${orderA.map(h=>h[0]).join("")}`);
+  log.push(`orderB=${orderB.map(h=>h[0]).join("")}`);
+  log.push(`orderC=${orderC.map(h=>h[0]).join("")}`);
+
+  // D2 Pit index (optional)
+  let pitIndex = null;
+  let pitRoll = null;
+  if(state.usePits){
+    pitRoll = 1 + randInt(state.pitCount);
+    pitIndex = pitRoll;
+    log.push(`pit=${pitRoll}/${state.pitCount}`);
+  }
+
+  // Fire rules (optional module)
+  const fireLines = [];
+  if(state.useFire){
+    fireLines.push(`D1 FIRE PLACEMENT: If fire spreads with multiple valid squares, choose square nearest any hero.`);
+    fireLines.push(`D2 FIRE REMOVAL: If 8 fires already exist and a new one would be placed, remove the fire farthest from all heroes.`);
+    log.push(`fire=ON`);
+  }else{
+    log.push(`fire=OFF`);
+  }
+
+  // E XP prompts
+  const xpLines = [
+    `E1 XP POLICY: Bank XP unless a purchase changes this turn.`,
+    `E2 UPGRADE PRIORITY: DAMAGE > MOVE > DISRUPT.`
+  ];
+
+  // F SPÄK-ATAK (optional)
+  let spakBlock = [];
+  if(state.useSpak){
+    const facing = facingRoll();
+    const spakOrder = shuffle(heroes);
+    log.push(`spakFacing=${facing[0]}`);
+    log.push(`spakOrder=${spakOrder.map(h=>h[0]).join("")}`);
+    spakBlock = [
+      `F1 SPÄK-ATAK (optional, one-use):`,
+      `Facing: ${facing}`,
+      `Interest order: ${orderStr(spakOrder)}`,
+      `Rule: Use first eligible, then discard this list.`
+    ];
+  }else{
+    log.push(`spak=OFF`);
+  }
+
+  // Notes
+  const notesBlock = (state.notes || "").trim()
+    ? [`NOTES: ${state.notes.trim()}`, ``]
+    : [];
+
+  const masterLines = [
+    `Zombie Turn Oracle: “The Rotting Clerk”`,
+    `MODE: Heroes vs Oracle Zombies (no zombie player)`,
+    `Z-HAND SIZE: ${handSize}`,
+    `HEROES (${heroCount}): ${heroes.join(", ")}`,
+    ...(state.usePits ? [`PITS: ${state.pitCount} (index method: start N-centre, clockwise)`] : [`PITS: (off)`]),
+    `FIRE MODULE: ${state.useFire ? "ON" : "OFF"}`,
+    `SPÄK-ATAK: ${state.useSpak ? "ON" : "OFF"}`,
+    `OBSESSION: ${state.useObsession ? "ON" : "OFF"}`,
+    ``,
+    ...notesBlock,
+
+    `A) HAND DIRECTIVES`,
+    `A1 DISCARD POLICY: Heroes may choose discard quickly; otherwise Oracle discards random.`,
+    `Result: DISCARD = Card #${discardRoll} (roll=${discardRoll}/${handSize})`,
+    ``,
+    `A2 PLAY ORDER`,
+    `Result: CARD ORDER = ${playOrder.join(" → ")} (shuffle)`,
+    `Result: HOLD FIGHT CARDS = ${holdFight ? "YES" : "NO"} (coin=${holdFight})`,
+    `Note: You decide what’s a Fight card; if HOLD=YES, save Fight cards for a nastier moment.`,
+    ``,
+
+    `B) HERO FOCUS FOR THIS TURN`,
+    ...(state.useObsession
+      ? [
+          `B1 OBSESSION DIRECTIVE: “THEY WANT” = ${obsessionHero} (roll=${obsessionRoll}/${heroCount})`,
+          `Rule: Use only when choice is unclear, or for WANDER. Any zombie that would WANDER instead steps 1 square toward ${obsessionHero} (if possible).`,
+          ``
+        ]
+      : [
+          `B1 OBSESSION DIRECTIVE: (off)`,
+          ``
+        ]),
+
+    `C) TARGETING ENGINES (auto-reroll per use)`,
+    `C1 TARGET LIST (general “a hero”): ${orderStr(orderA)}`,
+    `Use: pick first eligible, then discard this list.`,
+    ``,
+    `C2 SECOND TARGET LIST (secondary/splash): ${orderStr(orderB)}`,
+    `Use: pick first eligible not already used, then discard this list.`,
+    ``,
+    `C3 FIGHT DEFENDER LIST (only if multiple eligible in same fight): ${orderStr(orderC)}`,
+    `Use: filter to eligible heroes in that space; take first; discard list.`,
+    ``,
+
+    `D) RANDOM BUILDING / PIT CHOICES (only if a card forces it)`,
+    `D1 RANDOM BUILDING (on Zombie Choice): choose building closest to “THEY WANT” hero${state.useObsession ? ` (${obsessionHero})` : ""}.`,
+    ...(state.usePits
+      ? [`D2 PIT INDEX: PIT #${pitIndex} (roll=${pitRoll}/${state.pitCount}) using N-centre clockwise method.`, ``]
+      : [`D2 PIT INDEX: (off)`, ``]),
+
+    ...(fireLines.length ? [`D3 FIRE RULES:`, ...fireLines, ``] : []),
+
+    `E) XP / UPGRADE PROMPTS`,
+    ...xpLines,
+    ``,
+
+    ...(spakBlock.length ? [`F) OPTIONAL SPÄK-ATAK`, ...spakBlock, ``] : []),
+  ];
+
+  const masterText = masterLines.join("\n");
+
+  const summaryText = [
+    `SUMMARY`,
+    `HAND: ${handSize} | DISCARD: #${discardRoll} | HOLD FIGHT: ${holdFight ? "YES" : "NO"}`,
+    ...(state.useObsession ? [`THEY WANT: ${obsessionHero} (WANDER→step toward)`] : [`THEY WANT: (off)`]),
+    `TARGET ORDER A: ${orderA.join(" > ")}`,
+    `TARGET ORDER B: ${orderB.join(" > ")}`,
+    `DEFENDER ORDER C: ${orderC.join(" > ")}`,
+    ...(state.usePits ? [`PIT: #${pitIndex} (N-centre clockwise)`] : [`PIT: (off)`]),
+    ...(state.useFire ? [`FIRE: place nearest hero | remove farthest-from-heroes`] : []),
+    `XP: bank unless matters | UPGRADE: DMG>MOVE>DISRUPT`,
+    ...(state.useSpak ? [`SPÄK-ATAK: printed in master output (one-use)`] : []),
+  ].join("\n");
+
+  const logText = [
+    `ROLL LOG`,
+    ...log
+  ].join("\n");
+
+  el.outMaster.textContent = masterText;
+  el.outSummary.textContent = summaryText;
+  el.outLog.textContent = logText;
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+el.btnRefresh.addEventListener("click", refreshAll);
+
+el.btnCopySummary.addEventListener("click", async ()=>{
+  try{
+    await navigator.clipboard.writeText(el.outSummary.textContent);
+  }catch{
+    const ta = document.createElement("textarea");
+    ta.value = el.outSummary.textContent;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+});
+
+el.btnReset.addEventListener("click", ()=>{
+  state = structuredClone(DEFAULT_STATE);
+  saveState();
+  syncUI();
+  refreshAll();
+});
+
+[
+  el.inHeroCount, el.inHeroNames, el.chkAutoHand, el.inHandSize,
+  el.chkPits, el.inPitCount, el.chkFire, el.chkSpak, el.chkObsession, el.inNotes
+].forEach(ctrl=>{
+  ctrl.addEventListener("change", ()=>{
+    pullUI();
+    // outputs stay stable until you press refresh (by design)
+  });
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+syncUI();
+refreshAll();
+</script>
+</body>
+</html>
