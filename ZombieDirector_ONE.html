@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zombie Director ONE</title>
+<style>
+  :root{
+    --bg:#0b0d10;
+    --panel:#12151b;
+    --panel2:#0f1217;
+    --text:#e9eef7;
+    --muted:#a4adbb;
+    --line:#252b36;
+    --accent:#6ee7b7;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:linear-gradient(180deg,#07090c,#0b0d10);
+    color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:14px}
+  h1{font-size:18px;margin:0 0 8px 0}
+  .muted{color:var(--muted)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    margin-top:10px;
+  }
+  .hr{height:1px;background:var(--line);margin:10px 0}
+  .tag{font-size:12px;color:var(--muted)}
+  .pill{
+    padding:6px 10px;border-radius:999px;border:1px solid var(--line);
+    background:var(--panel2); color:var(--muted); font-size:12px
+  }
+
+  button, select, input{
+    background:var(--panel2);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 12px;
+    outline:none;
+    font-size:14px;
+  }
+  button{cursor:pointer; -webkit-tap-highlight-color: transparent;}
+  button:hover{border-color:#344055}
+  button.primary{border-color:#2b6b57; box-shadow:0 0 0 1px rgba(110,231,183,.08) inset}
+  button.on{border-color:#4a556b; background:#151a22}
+
+  .chk{display:flex;align-items:center;gap:8px}
+  .chk input{transform:scale(1.1)}
+
+  .boardsGrid{display:grid;gap:10px}
+  @media(min-width:860px){ .boardsGrid{grid-template-columns: 1fr 1fr 1fr} }
+
+  .packs{display:grid;gap:10px}
+  @media(min-width:860px){ .packs{grid-template-columns: 1fr 1fr} }
+
+  .pack{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:10px;
+  }
+  .packTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .packName{font-weight:800}
+  .packMeta{font-size:12px;color:var(--muted);margin-top:2px}
+  .packBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .packOut{
+    margin-top:10px;
+    background:#0b0f16;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px;
+    white-space:pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    line-height:1.35;
+  }
+  .small{font-size:12px;color:var(--muted)}
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+    background:#0b0f16;
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:10px 14px;
+    border-radius:999px;
+    font-size:13px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .18s ease;
+  }
+  .toast.on{opacity:1}
+  .status{
+    font-size:12px;
+    color:var(--muted);
+    margin-left:auto;
+  }
+  .status b{color:var(--accent); font-weight:700}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="row" style="align-items:baseline">
+    <h1 style="margin:0">Zombie Director ONE <span class="pill">packs only, automated</span></h1>
+    <div class="status" id="jsStatus">JS: <b>starting…</b></div>
+  </div>
+
+  <div class="muted">
+    Each pack resolves to one instruction: ENGAGED / HOME / DRIFT (+ optional SPLIT) / WANDER.
+  </div>
+
+  <div class="row" style="margin-top:10px">
+    <button class="primary" id="btnResolveAll">Resolve ALL packs</button>
+    <button id="btnCopySummary">Copy Summary</button>
+    <button id="btnReset">Reset (tap twice)</button>
+    <span class="tag">No fight-card logic. No manual compass pad. Just outcomes.</span>
+  </div>
+
+  <div class="panel">
+    <div style="font-weight:800;margin-bottom:8px">Boards in play</div>
+
+    <div class="boardsGrid">
+      <div>
+        <div class="tag">Base</div>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="01"><span>01</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="02"><span>02</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="03"><span>03</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="04"><span>04</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="05"><span>05</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="06"><span>06</span></label>
+      </div>
+
+      <div>
+        <div class="tag">Timber Peak</div>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="11"><span>11</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="12"><span>12</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="13"><span>13</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="14"><span>14</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="15"><span>15</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="16"><span>16</span></label>
+      </div>
+
+      <div>
+        <div class="tag">Growing Hunger / BITF</div>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="21"><span>21 (GH)</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="22"><span>22 (GH)</span></label>
+        <div class="hr"></div>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="31"><span>31 (BITF)</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="32"><span>32 (BITF)</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="33"><span>33 (BITF)</span></label>
+        <label class="chk"><input type="checkbox" class="boardChk" data-board="34"><span>34 (BITF)</span></label>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row">
+      <button id="presetBase">Preset: Base</button>
+      <button id="presetTP">Preset: TP</button>
+      <button id="presetBaseGH">Preset: Base + GH</button>
+      <button id="presetClear">Clear</button>
+      <span class="tag">Board pick updates all pack target dropdowns.</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div style="font-weight:800;margin-bottom:4px">Packs</div>
+        <div class="small">
+          Drift chances: LOS 2/6, SCENT 1/6, TARGET 2/6. Split suggestion on drift: 1/6.
+        </div>
+      </div>
+      <div class="row">
+        <button id="btnAddPack" class="primary">Add Pack</button>
+        <button id="btnRemovePack">Remove Last</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="packs" id="packs"></div>
+  </div>
+
+  <div class="panel">
+    <div style="font-weight:800;margin-bottom:8px">Live summary (what you copy)</div>
+    <div class="packOut" id="summaryOut">—</div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+/* ========= DATA ========= */
+var LOCATIONS = [
+  { id:"011", board:"01", name:"Cornfield" },
+  { id:"012", board:"01", name:"Barn" },
+  { id:"013", board:"01", name:"Farmhouse" },
+
+  { id:"021", board:"02", name:"Graveyard" },
+  { id:"022", board:"02", name:"Police Station" },
+  { id:"023", board:"02", name:"Church" },
+
+  { id:"031", board:"03", name:"Gun Shop" },
+  { id:"032", board:"03", name:"Power Plant" },
+  { id:"033", board:"03", name:"General Store" },
+
+  { id:"041", board:"04", name:"Junkyard" },
+  { id:"042", board:"04", name:"Gas Station" },
+  { id:"043", board:"04", name:"Bank" },
+  { id:"044", board:"04", name:"Road Out of Town" },
+
+  { id:"051", board:"05", name:"High School" },
+  { id:"052", board:"05", name:"Gym" },
+
+  { id:"061", board:"06", name:"Airplane Hangar" },
+  { id:"062", board:"06", name:"Hospital" },
+  { id:"063", board:"06", name:"Diner" },
+
+  { id:"211", board:"21", name:"Factory" },
+  { id:"212", board:"21", name:"Antique Shop" },
+  { id:"213", board:"21", name:"Library" },
+
+  { id:"221", board:"22", name:"Supermarket" },
+  { id:"222", board:"22", name:"Post Office" },
+  { id:"223", board:"22", name:"Drugstore" },
+
+  { id:"111", board:"11", name:"Tavern" },
+  { id:"112", board:"11", name:"Bowling Alley" },
+  { id:"114", board:"11", name:"Road Out of Town" },
+
+  { id:"121", board:"12", name:"Power Relay Station" },
+  { id:"122", board:"12", name:"Diner" },
+
+  { id:"131", board:"13", name:"Hospital" },
+  { id:"132", board:"13", name:"Police Station" },
+  { id:"133", board:"13", name:"Hardware Store" },
+
+  { id:"141", board:"14", name:"Refinery" },
+  { id:"142", board:"14", name:"Train Station" },
+
+  { id:"151", board:"15", name:"Sawmill" },
+  { id:"152", board:"15", name:"Lumberyard" },
+  { id:"153", board:"15", name:"Office Trailer" },
+  { id:"154", board:"15", name:"Road Out of Town" },
+
+  { id:"161", board:"16", name:"High School" },
+  { id:"162", board:"16", name:"Gym" },
+
+  { id:"311", board:"31", name:"(Pending BITF 31-1)" },
+  { id:"312", board:"31", name:"(Pending BITF 31-2)" },
+  { id:"313", board:"31", name:"(Pending BITF 31-3)" },
+
+  { id:"321", board:"32", name:"(Pending BITF 32-1)" },
+  { id:"322", board:"32", name:"(Pending BITF 32-2)" },
+  { id:"323", board:"32", name:"(Pending BITF 32-3)" },
+
+  { id:"331", board:"33", name:"(Pending BITF 33-1)" },
+  { id:"332", board:"33", name:"(Pending BITF 33-2)" },
+  { id:"333", board:"33", name:"(Pending BITF 33-3)" },
+
+  { id:"341", board:"34", name:"(Pending BITF 34-1)" },
+  { id:"342", board:"34", name:"(Pending BITF 34-2)" },
+  { id:"343", board:"34", name:"(Pending BITF 34-3)" }
+];
+
+var STORAGE_KEY = "zdir_one_packs_v2";
+var MAX_PACKS = 6;
+var COMPASS = ["N","E","S","W","NE","NW","SE","SW"];
+
+function isPendingName(name){
+  return /^\(Pending BITF/i.test(name || "");
+}
+
+/* ========= STATE ========= */
+var DEFAULT_STATE = {
+  boardsOn: ["01","04"],
+  packs: []
+};
+
+function deepClone(o){
+  return JSON.parse(JSON.stringify(o));
+}
+
+function loadState(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return deepClone(DEFAULT_STATE);
+    var parsed = JSON.parse(raw);
+    var s = deepClone(DEFAULT_STATE);
+    if(parsed && parsed.boardsOn) s.boardsOn = parsed.boardsOn;
+    if(parsed && parsed.packs) s.packs = parsed.packs;
+    if(!Array.isArray(s.boardsOn)) s.boardsOn = deepClone(DEFAULT_STATE.boardsOn);
+    if(!Array.isArray(s.packs)) s.packs = [];
+    // normalize
+    var seen = {};
+    var clean = [];
+    for(var i=0;i<s.boardsOn.length;i++){
+      var b = String(s.boardsOn[i]);
+      if(!seen[b]){ seen[b]=true; clean.push(b); }
+    }
+    s.boardsOn = clean;
+    return s;
+  }catch(e){
+    return deepClone(DEFAULT_STATE);
+  }
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+var state = loadState();
+
+/* ========= RNG ========= */
+function randInt(n){ return Math.floor(Math.random()*n); }
+function d6(){ return 1 + randInt(6); }
+function pick(arr){ return arr.length ? arr[randInt(arr.length)] : null; }
+function randCompass(){ return pick(COMPASS) || "N"; }
+
+/* ========= DOM ========= */
+var el = {};
+function $(id){ return document.getElementById(id); }
+
+function toast(msg){
+  var t = $("toast");
+  if(!t) return;
+  t.textContent = msg || "Copied";
+  t.classList.add("on");
+  setTimeout(function(){ t.classList.remove("on"); }, 900);
+}
+
+function findLoc(id){
+  for(var i=0;i<LOCATIONS.length;i++){
+    if(LOCATIONS[i].id === id) return LOCATIONS[i];
+  }
+  return null;
+}
+
+function fmtLoc(id){
+  var l = findLoc(id);
+  return l ? (l.id + " " + l.name) : "—";
+}
+
+function locationsForBoards(boardIds){
+  var set = {};
+  for(var i=0;i<boardIds.length;i++) set[String(boardIds[i])] = true;
+  var out = [];
+  for(var j=0;j<LOCATIONS.length;j++){
+    if(set[LOCATIONS[j].board]) out.push(LOCATIONS[j]);
+  }
+  out.sort(function(a,b){
+    return (a.id < b.id) ? -1 : (a.id > b.id) ? 1 : 0;
+  });
+  return out;
+}
+
+/* ========= PACKS ========= */
+function makePack(n){
+  var names = ["Red","Blue","Green","Yellow","Black","White"];
+  return {
+    id: String(Date.now() + Math.random()),
+    name: names[n] || ("Pack " + (n+1)),
+    adjacent: false,
+    mode: "LOS",
+    targetId: "",
+    last: { line:"—", meta:"" }
+  };
+}
+
+function ensurePacks(){
+  if(!state.packs || !state.packs.length){
+    state.packs = [makePack(0), makePack(1)];
+  }
+  if(state.packs.length > MAX_PACKS){
+    state.packs = state.packs.slice(0, MAX_PACKS);
+  }
+}
+ensurePacks();
+saveState();
+
+function resolvePack(p){
+  if(p.adjacent){
+    p.last = { line:"ENGAGED: attack adjacent hero", meta:"" };
+    return;
+  }
+
+  if(p.mode === "WANDER"){
+    var wd = randCompass();
+    p.last = { line:"WANDER: go " + wd, meta:"No attractor" };
+    return;
+  }
+
+  if(p.mode === "TARGET" && !p.targetId){
+    var wd2 = randCompass();
+    p.last = { line:"WANDER: go " + wd2, meta:"TARGET mode but no target set" };
+    return;
+  }
+
+  var driftNum = 0;
+  if(p.mode === "LOS") driftNum = 2;
+  else if(p.mode === "SCENT") driftNum = 1;
+  else if(p.mode === "TARGET") driftNum = 2;
+
+  var r = d6();
+  var drift = (r <= driftNum);
+
+  if(!drift){
+    if(p.mode === "LOS"){
+      p.last = { line:"HOME: shortest path toward LOS attractor", meta:"Drift: no (" + r + "/6)" };
+      return;
+    }
+    if(p.mode === "SCENT"){
+      p.last = { line:"HOME: shortest path toward SCENT attractor", meta:"Drift: no (" + r + "/6)" };
+      return;
+    }
+    p.last = { line:"HOME: shortest path toward TARGET (" + fmtLoc(p.targetId) + ")", meta:"Drift: no (" + r + "/6)" };
+    return;
+  }
+
+  var dir = randCompass();
+  var splitRoll = 1 + Math.floor(Math.random() * 6);
+  var split = (splitRoll === 1);
+  var splitTxt = split
+    ? ("SPLIT SUGGESTION: peel 1–2 zombies into NEW pack drifting " + dir + " (optional).")
+: ("SPLIT: no (" + splitRoll + "/6) (optional).");
+  var meta = "Drift: YES (" + r + "/6) | " + splitTxt;
+  if(p.mode === "LOS") meta = "LOS attractor | " + meta;
+  else if(p.mode === "SCENT") meta = "SCENT attractor | " + meta;
+  else meta = "TARGET " + fmtLoc(p.targetId) + " | " + meta;
+
+  p.last = { line:"DRIFT: ignore attractor this move, go " + dir, meta: meta };
+}
+
+/* ========= UI RENDER ========= */
+var resetArmed = false;
+var resetTimer = null;
+
+function armResetButton(){
+  var b = $("btnReset");
+  resetArmed = true;
+  if(b) b.textContent = "Reset CONFIRM";
+  if(resetTimer) clearTimeout(resetTimer);
+  resetTimer = setTimeout(function(){
+    resetArmed = false;
+    if(b) b.textContent = "Reset (tap twice)";
+  }, 2500);
+}
+
+function syncBoardCheckboxes(){
+  var chks = document.querySelectorAll(".boardChk");
+  for(var i=0;i<chks.length;i++){
+    var b = String(chks[i].getAttribute("data-board"));
+    chks[i].checked = state.boardsOn.indexOf(b) !== -1;
+  }
+}
+
+function setBoards(list){
+  var seen = {};
+  var clean = [];
+  for(var i=0;i<list.length;i++){
+    var b = String(list[i]);
+    if(!seen[b]){ seen[b]=true; clean.push(b); }
+  }
+  state.boardsOn = clean;
+  saveState();
+  syncBoardCheckboxes();
+  renderPacks();
+  rebuildSummary();
+}
+
+function validTargetIdForBoards(id){
+  if(!id) return true;
+  var loc = findLoc(id);
+  if(!loc) return false;
+  return state.boardsOn.indexOf(loc.board) !== -1;
+}
+
+function buildTargetOptions(){
+  var locs = locationsForBoards(state.boardsOn);
+  var normal = [];
+  var pending = [];
+  for(var i=0;i<locs.length;i++){
+    if(isPendingName(locs[i].name)) pending.push(locs[i]);
+    else normal.push(locs[i]);
+  }
+  return normal.concat(pending);
+}
+
+function renderPacks(){
+  var wrap = $("packs");
+  if(!wrap) return;
+
+  // validate targets
+  for(var i=0;i<state.packs.length;i++){
+    if(!validTargetIdForBoards(state.packs[i].targetId)){
+      state.packs[i].targetId = "";
+    }
+  }
+  saveState();
+
+  var options = buildTargetOptions();
+  wrap.innerHTML = "";
+
+  for(var idx=0; idx<state.packs.length; idx++){
+    (function(p, packIndex){
+      var box = document.createElement("div");
+      box.className = "pack";
+
+      var top = document.createElement("div");
+      top.className = "packTop";
+
+      var left = document.createElement("div");
+      var nm = document.createElement("div");
+      nm.className = "packName";
+      nm.textContent = (packIndex+1) + ") " + p.name;
+
+      var meta = document.createElement("div");
+      meta.className = "packMeta";
+      meta.textContent = "Adjacent overrides. LOS/SCENT = attractor. TARGET = chosen location. WANDER = no attractor.";
+      left.appendChild(nm);
+      left.appendChild(meta);
+
+      var right = document.createElement("div");
+      var btnRes = document.createElement("button");
+      btnRes.className = "primary";
+      btnRes.textContent = "Resolve";
+      btnRes.onclick = function(){
+        resolvePack(p);
+        saveState();
+        renderPacks();
+        rebuildSummary();
+      };
+      right.appendChild(btnRes);
+
+      top.appendChild(left);
+      top.appendChild(right);
+
+      var btns = document.createElement("div");
+      btns.className = "packBtns";
+
+      function mkModeBtn(label, mode){
+        var b = document.createElement("button");
+        b.textContent = label;
+        if(p.mode === mode) b.classList.add("on");
+        b.onclick = function(){
+          p.mode = mode;
+          saveState();
+          renderPacks();
+          rebuildSummary();
+        };
+        return b;
+      }
+
+      var bAdj = document.createElement("button");
+      bAdj.textContent = "Adjacent";
+      if(p.adjacent) bAdj.classList.add("on");
+      bAdj.onclick = function(){
+        p.adjacent = !p.adjacent;
+        saveState();
+        renderPacks();
+        rebuildSummary();
+      };
+
+      btns.appendChild(bAdj);
+      btns.appendChild(mkModeBtn("LOS","LOS"));
+      btns.appendChild(mkModeBtn("SCENT","SCENT"));
+      btns.appendChild(mkModeBtn("TARGET","TARGET"));
+      btns.appendChild(mkModeBtn("WANDER","WANDER"));
+
+      var targetRow = document.createElement("div");
+      targetRow.className = "row";
+      targetRow.style.marginTop = "8px";
+
+      var lab = document.createElement("span");
+      lab.className = "tag";
+      lab.textContent = "Target:";
+
+      var sel = document.createElement("select");
+      var opt0 = document.createElement("option");
+      opt0.value = "";
+      opt0.textContent = "(none)";
+      sel.appendChild(opt0);
+
+      for(var i=0;i<options.length;i++){
+        var o = document.createElement("option");
+        o.value = options[i].id;
+        o.textContent = options[i].id + " " + options[i].name;
+        sel.appendChild(o);
+      }
+      sel.value = p.targetId || "";
+      sel.onchange = function(){
+        p.targetId = sel.value;
+        saveState();
+        rebuildSummary();
+      };
+
+      var btnRand = document.createElement("button");
+      btnRand.textContent = "Random target";
+      btnRand.onclick = function(){
+        if(!options.length){
+          toast("No boards selected");
+          return;
+        }
+        var normal = [];
+        for(var i=0;i<options.length;i++){
+          if(!isPendingName(options[i].name)) normal.push(options[i]);
+        }
+        var pool = normal.length ? normal : options;
+        var c = pick(pool);
+        p.targetId = c ? c.id : "";
+        saveState();
+        renderPacks();
+        rebuildSummary();
+      };
+
+      targetRow.appendChild(lab);
+      targetRow.appendChild(sel);
+      targetRow.appendChild(btnRand);
+
+      var out = document.createElement("div");
+      out.className = "packOut";
+
+      var modeInfo = "";
+      if(p.adjacent){
+        modeInfo = "MODE: ADJACENT";
+      }else{
+        modeInfo = "MODE: " + p.mode;
+        if(p.mode === "TARGET"){
+          modeInfo += p.targetId ? (" (" + fmtLoc(p.targetId) + ")") : " (no target)";
+        }
+      }
+
+      var lastLine = (p.last && p.last.line) ? p.last.line : "—";
+      var lastMeta = (p.last && p.last.meta) ? p.last.meta : "";
+
+      out.textContent = modeInfo + "\n" + lastLine + (lastMeta ? ("\n" + lastMeta) : "");
+
+      box.appendChild(top);
+      box.appendChild(btns);
+      box.appendChild(targetRow);
+      box.appendChild(out);
+
+      wrap.appendChild(box);
+    })(state.packs[idx], idx);
+  }
+}
+
+function rebuildSummary(){
+  var boards = state.boardsOn.length ? state.boardsOn.join(", ") : "(none)";
+  var lines = [];
+  lines.push("BOARDS ON: " + boards);
+  lines.push("");
+
+  for(var i=0;i<state.packs.length;i++){
+    var p = state.packs[i];
+    lines.push((i+1) + ") " + p.name);
+
+    var mode = p.adjacent ? "ADJACENT" : p.mode;
+    var extra = "";
+    if(p.mode === "TARGET" && p.targetId) extra = " | TARGET: " + fmtLoc(p.targetId);
+
+    lines.push("  MODE: " + mode + extra);
+
+    var o1 = (p.last && p.last.line) ? p.last.line : "—";
+    var o2 = (p.last && p.last.meta) ? p.last.meta : "";
+    lines.push("  " + o1);
+    if(o2) lines.push("  " + o2);
+    lines.push("");
+  }
+
+  $("summaryOut").textContent = lines.join("\n").replace(/\n+$/,"") || "—";
+}
+
+/* ========= EVENTS ========= */
+function bind(){
+  // boards
+  var chks = document.querySelectorAll(".boardChk");
+  for(var i=0;i<chks.length;i++){
+    chks[i].addEventListener("change", function(){
+      var b = String(this.getAttribute("data-board"));
+      var ix = state.boardsOn.indexOf(b);
+      if(this.checked){
+        if(ix === -1) state.boardsOn.push(b);
+      }else{
+        if(ix !== -1) state.boardsOn.splice(ix,1);
+      }
+      // de-dupe
+      var seen = {}, clean = [];
+      for(var k=0;k<state.boardsOn.length;k++){
+        var bb = String(state.boardsOn[k]);
+        if(!seen[bb]){ seen[bb]=true; clean.push(bb); }
+      }
+      state.boardsOn = clean;
+      saveState();
+      renderPacks();
+      rebuildSummary();
+    });
+  }
+
+  $("presetBase").onclick = function(){ setBoards(["01","02","03","04","05","06"]); };
+  $("presetTP").onclick = function(){ setBoards(["11","12","13","14","15","16"]); };
+  $("presetBaseGH").onclick = function(){ setBoards(["01","02","03","04","05","06","21","22"]); };
+  $("presetClear").onclick = function(){ setBoards([]); };
+
+  $("btnAddPack").onclick = function(){
+    if(state.packs.length >= MAX_PACKS){ toast("Max 6 packs"); return; }
+    state.packs.push(makePack(state.packs.length));
+    saveState();
+    renderPacks();
+    rebuildSummary();
+  };
+
+  $("btnRemovePack").onclick = function(){
+    if(state.packs.length <= 1){ toast("Keep at least 1 pack"); return; }
+    state.packs.pop();
+    saveState();
+    renderPacks();
+    rebuildSummary();
+  };
+
+  $("btnResolveAll").onclick = function(){
+    for(var i=0;i<state.packs.length;i++) resolvePack(state.packs[i]);
+    saveState();
+    renderPacks();
+    rebuildSummary();
+  };
+
+  $("btnCopySummary").onclick = function(){
+    var txt = $("summaryOut").textContent || "";
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){
+        toast("Copied summary");
+      }).catch(function(){
+        fallbackCopy(txt);
+      });
+    }else{
+      fallbackCopy(txt);
+    }
+  };
+
+  $("btnReset").onclick = function(){
+    if(!resetArmed){
+      armResetButton();
+      return;
+    }
+    // do reset now
+    state = deepClone(DEFAULT_STATE);
+    ensurePacks();
+    saveState();
+    resetArmed = false;
+    this.textContent = "Reset (tap twice)";
+    syncBoardCheckboxes();
+    renderPacks();
+    rebuildSummary();
+    toast("Reset");
+  };
+}
+
+function fallbackCopy(txt){
+  var ta = document.createElement("textarea");
+  ta.value = txt;
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand("copy"); toast("Copied (fallback)"); }
+  catch(e){ toast("Copy failed"); }
+  ta.remove();
+}
+
+/* ========= INIT ========= */
+window.onerror = function(msg, src, line, col){
+  var s = $("jsStatus");
+  if(s) s.innerHTML = "JS: <b style='color:#ff6b6b'>ERROR</b> (" + msg + " @ " + line + ")";
+  return false;
+};
+
+(function init(){
+  el = {
+    jsStatus: $("jsStatus")
+  };
+  if(el.jsStatus) el.jsStatus.innerHTML = "JS: <b>OK</b>";
+  syncBoardCheckboxes();
+  bind();
+  renderPacks();
+  rebuildSummary();
+})();
+</script>
+</body>
+</html>
